@@ -9,6 +9,9 @@
 #define WORKER_SIZE 1
 #define CONN_BUF_SIZE 1024
 
+
+struct aeEventLoop;
+
 typedef struct Server{
     int listenfd;
     int epollfd;
@@ -21,8 +24,9 @@ typedef struct Client{
     char buf[CONN_BUF_SIZE];
     int readIndex;
     int writeIndex;
-    int (*readProc)(int, int, void*);
-    int (*writeProc)(int, int, void*);
+    int (*connProc)(aeEventLoop *, int, void*, int);
+    int (*readProc)(aeEventLoop *, int, void*, int);
+    int (*writeProc)(aeEventLoop *, int, void*, int);
 }Client;
 
 #endif

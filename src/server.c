@@ -18,8 +18,9 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *clientData, int mask){
     if(clifd > 0){
         Client *client= (Client *)malloc(sizeof(struct Client));
         client->clientfd = clifd;
+        client->readProc = readQueryFromClient;
         anetSetBlock(clifd, 1);
-        aeCreateFileEvent(el, clifd, AE_READABLE, readQueryFromClient, client);
+        aeCreateFileEvent(el, clifd, AE_READABLE, client->readProc, client);
     }else{
         perror("fail to accept client socket.");
     }
