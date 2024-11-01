@@ -1,9 +1,9 @@
 CFLAGS  := -std=c99 -Wall -g -O2 -D_REENTRANT
 LIBS    := -lpthread -lm -lcrypto -lssl
 
-TARGET  := $(shell uname -s | tr '[A-Z]' '[a-z]' 2>/dev/null || echo unknown)
+SRC  = src/server.c src/net.c src/ae.c
 
-SRC  := src/server.c src/net.c src/ae.c
+TARGET  := $(shell uname -s | tr '[A-Z]' '[a-z]' 2>/dev/null || echo unknown)
 
 
 ifeq ($(TARGET), sunos)

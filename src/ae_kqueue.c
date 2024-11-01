@@ -1,6 +1,8 @@
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+#include <stdlib.h>
+#include "ae.h"
 
 typedef struct aeApiState {
     int kqfd;
@@ -30,7 +32,7 @@ static int aeApiCreate(aeEventLoop *eventLoop) {
 static void aeApiFree(aeEventLoop *eventLoop) {
     aeApiState *state = eventLoop->apidata;
 
-    close(state->kqfd);
+//    close(state->kqfd);
     free(state->events);
     free(state);
 }
