@@ -6,47 +6,8 @@
 
 #include "net.h"
 #include "server.h"
+#include "redisCommand.h"
 
-
-
-void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask);
-void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask);
-
-void acceptTcpHandler(aeEventLoop *el, int fd, void *clientData, int mask){
-    socklen_t cliaddrlen;
-    int clifd = accept(fd, (struct sockaddr *)NULL, NULL);
-    if(clifd > 0){
-        Client *client= (Client *)malloc(sizeof(struct Client));
-        client->clientfd = clifd;
-        client->readProc = readQueryFromClient;
-        anetSetBlock(clifd, 1);
-        aeCreateFileEvent(el, clifd, AE_READABLE, client->readProc, client);
-    }else{
-        perror("fail to accept client socket.");
-    }
-}
-
-void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask){
-    Client *client = clientData;
-    int clientfd = client->clientfd;
-    char *buf = client->buf;
-    ssize_t nread = read(fd, buf + client->writeIndex, CONN_BUF_SIZE);
-    if (nread <= 0) {
-        if (nread == 0){
-             fprintf(stderr, "client close.\n");
-        }else{
-            perror("read error");
-            close(fd);
-        }
-    } else {
-        client->writeIndex += nread;
-        if(client->writeIndex >= CONN_BUF_SIZE){
-            client->writeIndex = 0;
-        }
-        printf("read msg is: %s, write index is:%d\n", buf,  client->writeIndex);
-    }
-
-}
 
 int main(int argc, char* argv[]){
     printf("net demo start...pid is: %d\n", getpid());
@@ -62,7 +23,5 @@ int main(int argc, char* argv[]){
         aeMain(server->ev);
     }
     aeStop(server->ev);
-
-
     return 0;
 }

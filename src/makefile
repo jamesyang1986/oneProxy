@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS= -g -ggdb -Wall -I. -std=c99
 DEPS = net.h
 
-OBJ = server.o net.o ae.o
+OBJ = server.o net.o ae.o redisCommand.o dict.o list.o
 
 TARGET  := $(shell uname -s | tr '[A-Z]' '[a-z]' 2>/dev/null || echo unknown)
 
