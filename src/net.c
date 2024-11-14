@@ -3,11 +3,18 @@
 #include <string.h>
 #include <errno.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <netdb.h>
+
 #include "net.h"
-
-
-
-
 
 int socket_bind(const char *ip, int port) {
     int listenfd = socket(AF_INET, SOCK_STREAM, 0);
