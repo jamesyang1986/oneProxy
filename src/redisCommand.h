@@ -4,11 +4,21 @@
 
 #ifndef REDISCOMMAND_H
 #define REDISCOMMAND_H
+
 #include "redisCommand.h"
 #include "dict.h"
 #include "ae.h"
 
 #define CONN_BUF_SIZE 1024
+#define MAX 1024
+
+#define QUERY_BUFF_SIZE 1024
+#define SEND_BUFF_SIZE 1024#define MAX 1024
+
+#define QUERY_BUFF_SIZE 1024
+#define SEND_BUFF_SIZE 1024
+#define THREAD_SIZE 20
+#define THREAD_SIZE 20
 
 typedef struct redisClient{
     int fd;
@@ -42,6 +52,11 @@ void expireCommand(redisClient *c, void ** argv);
 void delCommand(redisClient *c, void ** argv);
 
 void infoCommand(redisClient *c, void ** argv);
+
+
+void processMultiBulk(redisClient *c, char *data);
+void processInline(redisClient *c, char *data);
+void processCommand(redisClient *c);
 
 
 #endif //REDISCOMMAND_H

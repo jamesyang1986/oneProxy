@@ -16,15 +16,26 @@
 
 void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask);
 void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask);
+void readClientProc(redisClient *c);
 
-void acceptTcpHandler(aeEventLoop *el, int fd, void *clientData, int mask){
+redisClient* makeConn(int fd){
+    redisClient *client = (redisClient*)malloc(sizeof(redisClient));
+    client->fd = fd;
+    client->queryBuf = (char*)malloc(sizeof(char)*QUERY_BUFF_SIZE);
+    client->sendBuf = (char*)malloc(sizeof(char)*SEND_BUFF_SIZE);
+    client->clientfd = fd;
+    client->readProc = readQueryFromClient;
+    client->connectNum++;
+    return client;
+}
+
+
+ void acceptTcpHandler(aeEventLoop *el, int fd, void *clientData, int mask){
     socklen_t cliaddrlen;
     int clifd = accept(fd, (struct sockaddr *)NULL, NULL);
     if(clifd > 0){
         // Client *client= (Client *)malloc(sizeof(struct Client));
-        redisClient *client= (redisClient *)malloc(sizeof(struct redisClient));
-        client->clientfd = clifd;
-        client->readProc = readQueryFromClient;
+        redisClient *client= makeConn(fd);
         anetSetBlock(clifd, 1);
         aeCreateFileEvent(el, clifd, AE_READABLE, client->readProc, client);
     }else{
@@ -34,28 +45,121 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *clientData, int mask){
 
 void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask){
     redisClient *client = clientData;
-    int clientfd = client->clientfd;
-    char *buf = client->buf;
-    ssize_t nread = read(fd, buf + client->writeIndex, CONN_BUF_SIZE);
-    if (nread <= 0) {
-        if (nread == 0){
-            fprintf(stderr, "client close.\n");
-        }else{
-            perror("read error");
-            close(fd);
-        }
-    } else {
-        client->writeIndex += nread;
-        if(client->writeIndex >= CONN_BUF_SIZE){
-            client->writeIndex = 0;
-        }
-        printf("read msg is: %s, write index is:%d\n", buf,  client->writeIndex);
-    }
+    readClientProc(client);
+    // int clientfd = client->clientfd;
+    // char *buf = client->buf;
+    // ssize_t nread = read(fd, buf + client->writeIndex, CONN_BUF_SIZE);
+    // if (nread <= 0) {
+    //     if (nread == 0){
+    //         fprintf(stderr, "client close.\n");
+    //     }else{
+    //         perror("read error");
+    //         close(fd);
+    //     }
+    // } else {
+    //     client->writeIndex += nread;
+    //     if(client->writeIndex >= CONN_BUF_SIZE){
+    //         client->writeIndex = 0;
+    //     }
+    //     printf("read msg is: %s, write index is:%d\n", buf,  client->writeIndex);
+    // }
 
 }
 
+void readClientProc(redisClient *c){
+    while (1) {
+        int clientfd = c->fd;
+        char buff[MAX];
+        bzero(buff, MAX);
+        int len = read(clientfd, buff, sizeof(buff));
+        if(len == 0) {
+            printf("Client read zero\n");
+            continue;
+        }
 
-static pthread_mutex_t mutex;
+        if(len == -1) {
+            printf("socket read fail\n");
+            break;
+        }
+
+        printf("From client data: %s\n", buff);
+        if(buff[0] == '*'){
+            processMultiBulk(c, buff);
+        }else{
+            processInline(c, buff);
+        }
+        processCommand(c);
+    }
+}
+
+void processCommand(redisClient *c) {
+    if(c->argv == NULL) {
+        printf("command is emputy\n");
+        return;
+    }
+    char *cmd = c->argv[0];
+    if(strcasecmp(cmd,"set")== 0) {
+        setCommand(c, c->argv);
+    }else if(strcasecmp(cmd,"get")== 0) {
+        getCommand(c, c->argv);
+    }else if(strcasecmp(cmd,"del")== 0) {
+        delCommand(c, c->argv);
+    }
+    c->argv = NULL;
+    c->argc = 0;
+}
+
+void processMultiBulk(redisClient *c, char *data){
+    int pos = 0;
+    char *str = strchr(data,'\r');
+    int len = str - data -1;
+    char *cc = (char *)malloc(sizeof(char) * len);
+    bzero(cc, len);
+    memcpy(cc,data + 1,len);
+    int bulkLen = atoi(cc);
+    pos += 1 + len + 2;
+    char *cur = NULL;
+    char **argv = (char **)malloc(sizeof(char *) * bulkLen);
+    c->argc = bulkLen;
+    for(int i = 0; i < bulkLen; i++){
+        if(data[pos] != '$'){
+            perror("the protocol is incorrect.");
+            exit(-1);
+        }
+
+        cur = data + pos;
+        str = strchr(cur,'\r');
+        len = str - cur -1;
+        cc = (char *)malloc(sizeof(char) * len);
+        bzero(cc, len);
+        memcpy(cc,cur + 1,len);
+        int strLen = atoi(cc);
+        pos += 1 + len + 2;
+        cc = (char *)malloc(sizeof(char) * strLen);
+        bzero(cc, strLen);
+        memcpy(cc,data + pos,strLen);
+
+        argv[i] = cc;
+        pos += strLen + 2;
+    }
+    c->argv = argv;
+}
+
+void processInline(redisClient *c, char *data){
+    switch(data[0]){
+        case '+':
+            break;
+        case '-':
+            break;
+        case '$':
+            break;
+        case ':':
+            break;
+        default:
+            break;
+    }
+}
+
 
 
 void replyData(redisClient *c, void *data, int len) {
