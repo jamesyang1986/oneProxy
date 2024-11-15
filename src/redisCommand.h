@@ -20,6 +20,10 @@
 #define THREAD_SIZE 20
 #define THREAD_SIZE 20
 
+
+#define PRO_INLINE 1
+#define PRO_MULTIBULK 2
+
 typedef struct redisClient{
     int fd;
     char *queryBuf;

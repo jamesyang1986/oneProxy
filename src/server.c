@@ -7,6 +7,7 @@
 #include "net.h"
 #include "server.h"
 #include "redisCommand.h"
+#include "log.h"
 
 #define PORT 9527
 
@@ -14,9 +15,14 @@ Server *server;
 
 
 int main(int argc, char* argv[]){
-    printf("net demo start...pid is: %d\n", getpid());
+    // sprintf("net demo start...pid is: %d\n", getpid());
     server = (Server *)malloc(sizeof(*server));
     server->db = dictCreate(&dictTypeHeapStringCopyKey, NULL);
+    server->verbosity = LOG_DEBUG;
+    server->logfile = NULL;
+    server->pid = getpid();
+
+    Log(LOG_DEBUG, "net demo start...");
 
     int listenfd = socket_bind(IPADDRESS, PORT);
     server->listenfd = listenfd;

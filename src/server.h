@@ -18,6 +18,9 @@ typedef struct Server{
     int epollfd;
     struct aeEventLoop *ev;
     dict *db;
+    int verbosity;
+    char *logfile;
+    pid_t pid;
 
 }Server;
 
@@ -30,5 +33,6 @@ typedef struct Client{
     int (*readProc)(aeEventLoop *, int, void*, int);
     int (*writeProc)(aeEventLoop *, int, void*, int);
 }Client;
+
 
 #endif

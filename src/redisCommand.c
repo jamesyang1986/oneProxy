@@ -52,50 +52,44 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask){
     readClientProc(client);
 }
 
-int readConn(redisClient *c) {
-    ssize_t nread = read(c->fd, c->queryBuf + c->writeIndex, CONN_BUF_SIZE- c->writeIndex);
+void readClientProc(redisClient *c){
+    ssize_t nread= 0;
+    nread = read(c->fd, c->queryBuf + c->writeIndex, QUERY_BUFF_SIZE);
     if(nread == 0) {
         printf("Client read zero\n");
-        return -1;
+        return;
     }
 
     if(nread == -1) {
         printf("socket read fail\n");
-        return -1;
+        return ;
     }
 
     c->writeIndex += nread;
-    if(c->writeIndex >= CONN_BUF_SIZE){
-        c->writeIndex = 0;
+
+    int len = (c->writeIndex -c->readIndex);
+    char *buff = malloc(sizeof(char) * len);
+    memcpy(buff, c->queryBuf + c->readIndex, len);
+
+    printf("From client data: %s\n", buff);
+
+    if(c->reqType == 0) {
+        if(buff[0] == '*'){
+            c->reqType = PRO_MULTIBULK;
+        }else{
+            c->reqType = PRO_INLINE;
+        }
     }
-    return 1;
-}
 
-void readClientProc(redisClient *c){
-        if (!readConn(c)) return;
-
-        int len = (c->writeIndex -c->readIndex);
-        char *buff = malloc(sizeof(char) * len);
-        memcpy(buff, c->queryBuf + c->readIndex, len);
-
-        printf("From client data: %s\n", buff);
-
-        if(c->reqType == 0) {
-            if(buff[0] == '*'){
-                c->reqType = 1;
-                processMultiBulk(c, buff);
-            }else{
-                c->reqType = 2;
-                processInline(c, buff);
-            }
-        }
-
-        c->readIndex += len;
-        if(c->readIndex >= CONN_BUF_SIZE) {
-            c->readIndex = 0;
-        }
-
-        processCommand(c);
+    if(c->reqType == PRO_INLINE) {
+        processInline(c, buff);
+    }else if(c->reqType == PRO_MULTIBULK) {
+        processMultiBulk(c, buff);
+    }
+    processCommand(c);
+    c->writeIndex = 0;
+    c->readIndex = 0;
+    bzero(c->queryBuf, QUERY_BUFF_SIZE);
 }
 
 void processCommand(redisClient *c) {
@@ -103,6 +97,7 @@ void processCommand(redisClient *c) {
         printf("command is emputy\n");
         return;
     }
+
     char *cmd = c->argv[0];
     if(strcasecmp(cmd,"set")== 0) {
         setCommand(c, c->argv);
