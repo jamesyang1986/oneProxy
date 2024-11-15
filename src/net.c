@@ -83,11 +83,6 @@ static int anetSetTcpNoDelay(char *err, int fd, int val)
     return 1;
 }
 
-int anetEnableTcpNoDelay(char *err, int fd)
-{
-    return anetSetTcpNoDelay(err, fd, 1);
-}
-
 int anetSetSendBuffer(char *err, int fd, int buffsize)
 {
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buffsize, sizeof(buffsize)) == -1)
@@ -142,10 +137,14 @@ int anetReceiveTimeout(char *err, int fd, long long ms) {
 }
 
 
-
 int anetDisableTcpNoDelay(char *err, int fd)
 {
     return anetSetTcpNoDelay(err, fd, 0);
+}
+
+int anetEnableTcpNoDelay(char *err, int fd)
+{
+    return anetSetTcpNoDelay(err, fd, 1);
 }
 
 
