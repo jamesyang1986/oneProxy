@@ -27,7 +27,6 @@ redisClient* makeConn(int fd){
     client->fd = fd;
     client->queryBuf = (char*)malloc(sizeof(char)*QUERY_BUFF_SIZE);
     client->sendBuf = (char*)malloc(sizeof(char)*SEND_BUFF_SIZE);
-    client->clientfd = fd;
     client->readProc = readQueryFromClient;
     client->connectNum++;
     client->curDb = server->db;
@@ -41,7 +40,6 @@ redisClient* makeConn(int fd){
     socklen_t cliaddrlen;
     int clifd = accept(fd, (struct sockaddr *)NULL, NULL);
     if(clifd > 0){
-        // Client *client= (Client *)malloc(sizeof(struct Client));
         redisClient *client= makeConn(clifd);
         aeCreateFileEvent(el, clifd, AE_READABLE, client->readProc, client);
     }else{
@@ -54,32 +52,42 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask){
     readClientProc(client);
 }
 
+int readConn(redisClient *c) {
+    ssize_t nread = read(c->fd, c->queryBuf + c->writeIndex, CONN_BUF_SIZE- c->writeIndex);
+    if(nread == 0) {
+        printf("Client read zero\n");
+        return -1;
+    }
+
+    if(nread == -1) {
+        printf("socket read fail\n");
+        return -1;
+    }
+
+    c->writeIndex += nread;
+    if(c->writeIndex >= CONN_BUF_SIZE){
+        c->writeIndex = 0;
+    }
+    return 1;
+}
+
 void readClientProc(redisClient *c){
-        ssize_t nread = read(c->fd, c->queryBuf + c->writeIndex, CONN_BUF_SIZE- c->writeIndex);
-        if(nread == 0) {
-            printf("Client read zero\n");
-            return;
-        }
-
-        if(nread == -1) {
-            printf("socket read fail\n");
-            return;
-        }
-
-        c->writeIndex += nread;
-        if(c->writeIndex >= CONN_BUF_SIZE){
-            c->writeIndex = 0;
-        }
+        if (!readConn(c)) return;
 
         int len = (c->writeIndex -c->readIndex);
         char *buff = malloc(sizeof(char) * len);
         memcpy(buff, c->queryBuf + c->readIndex, len);
 
         printf("From client data: %s\n", buff);
-        if(buff[0] == '*'){
-            processMultiBulk(c, buff);
-        }else{
-            processInline(c, buff);
+
+        if(c->reqType == 0) {
+            if(buff[0] == '*'){
+                c->reqType = 1;
+                processMultiBulk(c, buff);
+            }else{
+                c->reqType = 2;
+                processInline(c, buff);
+            }
         }
 
         c->readIndex += len;
@@ -227,7 +235,6 @@ void getCommand(redisClient *c, void ** argv) {
 
     dictEntry *entry = dictFind(db,key);
 
-    // sendBulkStr(c, "ddaa");
     if(entry == NULL) {
         sendNil(c);
         return;
@@ -246,13 +253,6 @@ void setCommand(redisClient *c, void ** argv) {
     char *key = argv[1];
     char *value = argv[2];
     dictAdd(db, key, value);
-
-    // pthread_mutex_init(&mutex,NULL);
-    // pthread_mutex_lock(&mutex);
-    // dictAdd(db, key, value);
-    // pthread_mutex_unlock(&mutex);
-
-
     sendStr(c,"OK");
 }
 
