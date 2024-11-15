@@ -28,7 +28,7 @@ typedef struct redisClient{
     int argc;
     char **argv;
     int replOffset;
-    dict *db;
+    dict *curDb;
 
     int clientfd;
     char buf[CONN_BUF_SIZE];

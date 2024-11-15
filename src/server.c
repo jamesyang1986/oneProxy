@@ -8,11 +8,16 @@
 #include "server.h"
 #include "redisCommand.h"
 
+#define PORT 9527
+
+Server *server;
+
 
 int main(int argc, char* argv[]){
     printf("net demo start...pid is: %d\n", getpid());
+    server = (Server *)malloc(sizeof(*server));
+    server->db = dictCreate(&dictTypeHeapStringCopyKey, NULL);
 
-    Server *server = (Server *)malloc(sizeof(*server));
     int listenfd = socket_bind(IPADDRESS, PORT);
     server->listenfd = listenfd;
     listen(listenfd, LISTENQ);

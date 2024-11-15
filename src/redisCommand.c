@@ -13,10 +13,14 @@
 
 #include "redisCommand.h"
 #include "net.h"
+#include "server.h"
 
 void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask);
 void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask);
 void readClientProc(redisClient *c);
+
+
+extern Server *server;
 
 redisClient* makeConn(int fd){
     redisClient *client = (redisClient*)malloc(sizeof(redisClient));
@@ -26,6 +30,9 @@ redisClient* makeConn(int fd){
     client->clientfd = fd;
     client->readProc = readQueryFromClient;
     client->connectNum++;
+    client->curDb = server->db;
+    //set socket not block
+    anetSetBlock(fd,1);
     return client;
 }
 
@@ -35,8 +42,7 @@ redisClient* makeConn(int fd){
     int clifd = accept(fd, (struct sockaddr *)NULL, NULL);
     if(clifd > 0){
         // Client *client= (Client *)malloc(sizeof(struct Client));
-        redisClient *client= makeConn(fd);
-        anetSetBlock(clifd, 1);
+        redisClient *client= makeConn(clifd);
         aeCreateFileEvent(el, clifd, AE_READABLE, client->readProc, client);
     }else{
         perror("fail to accept client socket.");
@@ -46,41 +52,28 @@ redisClient* makeConn(int fd){
 void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask){
     redisClient *client = clientData;
     readClientProc(client);
-    // int clientfd = client->clientfd;
-    // char *buf = client->buf;
-    // ssize_t nread = read(fd, buf + client->writeIndex, CONN_BUF_SIZE);
-    // if (nread <= 0) {
-    //     if (nread == 0){
-    //         fprintf(stderr, "client close.\n");
-    //     }else{
-    //         perror("read error");
-    //         close(fd);
-    //     }
-    // } else {
-    //     client->writeIndex += nread;
-    //     if(client->writeIndex >= CONN_BUF_SIZE){
-    //         client->writeIndex = 0;
-    //     }
-    //     printf("read msg is: %s, write index is:%d\n", buf,  client->writeIndex);
-    // }
-
 }
 
 void readClientProc(redisClient *c){
-    while (1) {
-        int clientfd = c->fd;
-        char buff[MAX];
-        bzero(buff, MAX);
-        int len = read(clientfd, buff, sizeof(buff));
-        if(len == 0) {
+        ssize_t nread = read(c->fd, c->queryBuf + c->writeIndex, CONN_BUF_SIZE- c->writeIndex);
+        if(nread == 0) {
             printf("Client read zero\n");
-            continue;
+            return;
         }
 
-        if(len == -1) {
+        if(nread == -1) {
             printf("socket read fail\n");
-            break;
+            return;
         }
+
+        c->writeIndex += nread;
+        if(c->writeIndex >= CONN_BUF_SIZE){
+            c->writeIndex = 0;
+        }
+
+        int len = (c->writeIndex -c->readIndex);
+        char *buff = malloc(sizeof(char) * len);
+        memcpy(buff, c->queryBuf + c->readIndex, len);
 
         printf("From client data: %s\n", buff);
         if(buff[0] == '*'){
@@ -88,8 +81,13 @@ void readClientProc(redisClient *c){
         }else{
             processInline(c, buff);
         }
+
+        c->readIndex += len;
+        if(c->readIndex >= CONN_BUF_SIZE) {
+            c->readIndex = 0;
+        }
+
         processCommand(c);
-    }
 }
 
 void processCommand(redisClient *c) {
@@ -224,7 +222,7 @@ void getCommand(redisClient *c, void ** argv) {
         printf("wrong number of arguments\n");
         sendERR(c,"ERR");
     }
-    dict *db = c->db;
+    dict *db = c->curDb;
     char *key = argv[1];
 
     dictEntry *entry = dictFind(db,key);
@@ -244,7 +242,7 @@ void setCommand(redisClient *c, void ** argv) {
         printf("wrong number of arguments\n");
         sendERR(c,"ERR");
     }
-    dict *db = c->db;
+    dict *db = c->curDb;
     char *key = argv[1];
     char *value = argv[2];
     dictAdd(db, key, value);
