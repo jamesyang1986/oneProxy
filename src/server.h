@@ -24,15 +24,5 @@ typedef struct Server{
 
 }Server;
 
-typedef struct Client{
-    int clientfd;
-    char buf[CONN_BUF_SIZE];
-    int readIndex;
-    int writeIndex;
-    int (*connProc)(aeEventLoop *, int, void*, int);
-    int (*readProc)(aeEventLoop *, int, void*, int);
-    int (*writeProc)(aeEventLoop *, int, void*, int);
-}Client;
-
 
 #endif

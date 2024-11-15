@@ -13,9 +13,7 @@
 
 Server *server;
 
-
 int main(int argc, char* argv[]){
-    // sprintf("net demo start...pid is: %d\n", getpid());
     server = (Server *)malloc(sizeof(*server));
     server->db = dictCreate(&dictTypeHeapStringCopyKey, NULL);
     server->verbosity = LOG_DEBUG;
