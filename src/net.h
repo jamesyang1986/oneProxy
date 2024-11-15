@@ -3,7 +3,7 @@
 
 #define ANET_ERR_LEN 256
 #define ANET_ERR -1
-#define ANET_OK -1
+#define ANET_OK 1
 
 int socket_bind(const char *ip, int port);
 int anetSetBlock(int fd, int non_block);
