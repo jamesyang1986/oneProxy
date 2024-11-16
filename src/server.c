@@ -9,8 +9,6 @@
 #include "redisCommand.h"
 #include "log.h"
 
-#define PORT 9527
-
 Server *server;
 
 int main(int argc, char* argv[]){
@@ -22,11 +20,15 @@ int main(int argc, char* argv[]){
 
     Log(LOG_DEBUG, "net demo started, pid:%d",server->pid);
 
-    int listenfd = socket_bind(IPADDRESS, PORT);
-    server->listenfd = listenfd;
-    listen(listenfd, LISTENQ);
-    server->ev = aeCreateEventLoop(1024);
-    aeCreateFileEvent(server->ev, listenfd, AE_READABLE, acceptTcpHandler, NULL);
+    server->listenfd = socket_bind(IPADDRESS, PORT);
+    if(server->listenfd < 0){
+        Log(LOG_ERROR, "fail to bind socket, exit.");
+        exit(-1);
+    }
+
+    listen(server->listenfd, LISTENQ);
+    server->ev = aeCreateEventLoop(EVENT_MAX_SIZE);
+    aeCreateFileEvent(server->ev, server->listenfd, AE_READABLE, acceptTcpHandler, NULL);
 
     while(1){
         aeMain(server->ev);

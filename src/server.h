@@ -7,8 +7,8 @@
 #define IPADDRESS "0.0.0.0"
 
 #define LISTENQ 5
-#define WORKER_SIZE 1
-#define CONN_BUF_SIZE 1024
+#define PORT 9527
+#define EVENT_MAX_SIZE 1024
 
 
 struct aeEventLoop;
