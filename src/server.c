@@ -11,6 +11,8 @@
 
 Server *server;
 
+void initBackendConn();
+
 int main(int argc, char *argv[]) {
     server = (Server *) malloc(sizeof(*server));
     server->db = dictCreate(&dictTypeHeapStringCopyKey, NULL);
@@ -30,6 +32,17 @@ int main(int argc, char *argv[]) {
     server->ev = aeCreateEventLoop(EVENT_MAX_SIZE);
     aeCreateFileEvent(server->ev, server->listenfd, AE_READABLE, acceptTcpHandler, NULL);
 
+    initBackendConn(server);
+
+    while (1) {
+        aeMain(server->ev);
+    }
+
+    aeStop(server->ev);
+    return 0;
+}
+
+void initBackendConn(Server *server) {
     Conn* conns[2];
     Conn *conn = createConn("127.0.0.1", 6379);
     if (conn == NULL) {
@@ -39,11 +52,4 @@ int main(int argc, char *argv[]) {
 
     conns[0] = conn;
     server->backConns = conns;
-
-    while (1) {
-        aeMain(server->ev);
-    }
-
-    aeStop(server->ev);
-    return 0;
 }
