@@ -20,7 +20,7 @@ int main(int argc, char* argv[]){
     server->logfile = NULL;
     server->pid = getpid();
 
-    Log(LOG_DEBUG, "net demo start...");
+    Log(LOG_DEBUG, "net demo started, pid:%d",server->pid);
 
     int listenfd = socket_bind(IPADDRESS, PORT);
     server->listenfd = listenfd;
