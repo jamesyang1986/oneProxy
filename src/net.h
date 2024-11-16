@@ -7,6 +7,11 @@
 
 int socket_bind(const char *ip, int port);
 int anetSetBlock(int fd, int non_block);
+int anetNonBlock(char *err, int fd);
+int anetTcpConnect(char *err, char *addr, int port);
+int anetTcpNonBlockConnect(char *err, char *addr, int port);
+int anetUnixConnect(char *err, char *path);
+int anetUnixNonBlockConnect(char *err, char *path);
 int anetSendTimeout(char *err, int fd, long long ms);
 int anetReceiveTimeout(char *err, int fd, long long ms);
 int anetSetRecvBuffer(char *err, int fd, int buffsize);

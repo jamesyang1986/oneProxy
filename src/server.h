@@ -1,5 +1,6 @@
 #include "ae.h"
 #include "dict.h"
+#include "connection.h"
 
 #ifndef SERVER_H
 #define SERVER_H
@@ -21,7 +22,7 @@ typedef struct Server{
     int verbosity;
     char *logfile;
     pid_t pid;
-
+    Conn** backConns
 }Server;
 
 

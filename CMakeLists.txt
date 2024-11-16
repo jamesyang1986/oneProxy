@@ -8,4 +8,4 @@ add_executable(oneProxy src/server.c src/net.c src/ae.c src/ae_epoll.c
         src/redisCommand.c
         src/dict.c
         src/list.c
-        src/log.c)
+        src/log.c src/connection.h src/connection.c)
