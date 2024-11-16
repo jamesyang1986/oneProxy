@@ -51,5 +51,6 @@ void initBackendConn(Server *server) {
     }
 
     conns[0] = conn;
+    conns[1] = conn;
     server->backConns = conns;
 }

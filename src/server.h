@@ -22,7 +22,7 @@ typedef struct Server{
     int verbosity;
     char *logfile;
     pid_t pid;
-    Conn** backConns
+    Conn** backConns;
 }Server;
 
 
