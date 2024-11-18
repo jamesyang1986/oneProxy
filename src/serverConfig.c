@@ -9,8 +9,15 @@
 #include "dict.h"
 
 
+ProxyConfig *genTestConfig();
+
 ProxyConfig *loadConfig(char *path) {
-//    Log(LOG_INFO, "start to load  cluster config from:%s", path);
+    Log(LOG_INFO, "start to load  cluster config from:%s", path);
+    ProxyConfig *proxyConfig = genTestConfig();
+    return proxyConfig;
+}
+
+ProxyConfig *genTestConfig() {
     Instance *masterInstance = malloc(sizeof(Instance));
     masterInstance->port = 6379;
     masterInstance->host = "127.0.0.1";
@@ -50,7 +57,6 @@ ProxyConfig *loadConfig(char *path) {
     proxyConfig->port = 9527;
     proxyConfig->maxClient = 1024;
     proxyConfig->cluster = cluster;
-    dict *connMap;
     return proxyConfig;
 }
 
