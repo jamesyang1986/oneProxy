@@ -8,10 +8,12 @@
 #include "server.h"
 #include "redisCommand.h"
 #include "log.h"
+#include "serverConfig.h"
 
 Server *server;
 
-void initBackendConn();
+
+Conn *getOrCreateConn(char *host, int port);
 
 int main(int argc, char *argv[]) {
     server = (Server *) malloc(sizeof(*server));
@@ -20,9 +22,22 @@ int main(int argc, char *argv[]) {
     server->logfile = NULL;
     server->pid = getpid();
 
+    ProxyConfig *proxyConfig = loadConfig("/tmp/test.conf");
+    server->connMap = dictCreate(&dictTypeHeapStringCopyKey, NULL);
+    Cluster *cluster = proxyConfig->cluster;
+    for (int i = 0; i < cluster->nodeNum; i++) {
+        Node *node = cluster->nodes[i];
+        Instance *master = node->master;
+        getOrCreateConn(master->host, master->port);
+        Instance *slave = node->slave;
+        getOrCreateConn(slave->host, slave->port);
+    }
+
+    server->proxyConfig = proxyConfig;
+
     Log(LOG_DEBUG, "net demo started, pid:%d", server->pid);
 
-    server->listenfd = socket_bind(IPADDRESS, PORT);
+    server->listenfd = socket_bind(proxyConfig->listen, proxyConfig->port);
     if (server->listenfd < 0) {
         Log(LOG_ERROR, "fail to bind socket, exit.");
         exit(-1);
@@ -32,7 +47,6 @@ int main(int argc, char *argv[]) {
     server->ev = aeCreateEventLoop(EVENT_MAX_SIZE);
     aeCreateFileEvent(server->ev, server->listenfd, AE_READABLE, acceptTcpHandler, NULL);
 
-    initBackendConn();
 
     while (1) {
         aeMain(server->ev);
@@ -42,15 +56,18 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void initBackendConn() {
-    Conn* conns[2];
-    Conn *conn = createConn("127.0.0.1", 6379);
+Conn *getOrCreateConn(char *host, int port) {
+    char endpoint[30];
+    sprintf(endpoint, "%s:%d", host, port);
+    Conn *conn = dictFetchValue(server->connMap, endpoint);
+    if (conn != NULL)
+        return conn;
+    conn = createConn(host, port);
     if (conn == NULL) {
         Log(LOG_ERROR, "fail to create backend server conn");
-        exit(-1);
+        return NULL;
     }
 
-    conns[0] = conn;
-    conns[1] = conn;
-    server->master = conn;
+    dictAdd(server->connMap, endpoint, conn);
+    return conn;
 }

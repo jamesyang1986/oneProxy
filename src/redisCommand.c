@@ -25,6 +25,9 @@ void readClientProc(redisClient *c);
 
 
 void send2Proxy(const redisClient *c, char *buff, int size);
+Conn *getConn(char *host, int port);
+
+Instance *selectInstance(const redisClient *c);
 
 extern Server *server;
 
@@ -101,9 +104,20 @@ void readClientProc(redisClient *c) {
     free(buff);
 }
 
+
+Instance *selectInstance(const redisClient *c) {
+    //TODO add cluster route impl
+    char ** argv = c->argv;
+    char *key = argv[1];
+    ProxyConfig  *config = server->proxyConfig;
+    Instance  *master = config->cluster->nodes[0]->master;
+    return master;
+}
+
 void send2Proxy(const redisClient *c, char *buff, int size) {
     //use master mode default
-    Conn *conn = server->master;
+    Instance *master = selectInstance(c);
+    Conn *conn = getConn(master->host, master->port);
     if (conn == NULL)return;
     sendData(conn, buff, size);
     char tmp[1024];
@@ -112,6 +126,16 @@ void send2Proxy(const redisClient *c, char *buff, int size) {
     Log(LOG_DEBUG, "receive data from: %s:%d, data:%s", conn->host, conn->port, tmp);
     int nsize = write(c->fd, tmp, n);
 //    free(tmp);
+}
+
+
+Conn *getConn(char *host, int port) {
+    char endpoint[30];
+    sprintf(endpoint, "%s:%d", host, port);
+    Conn *conn = dictFetchValue(server->connMap, endpoint);
+    if (conn != NULL)
+        return conn;
+    return NULL;
 }
 
 void processCommand(redisClient *c) {
