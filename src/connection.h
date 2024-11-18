@@ -17,9 +17,10 @@ typedef struct Connection{
 }Conn;
 
 Conn* createConn(char *host, int port);
-void reconnet();
-int sendData(Conn *conn, char *buf);
-int recvData(Conn *conn, char *buf);
+Conn* reconnet(char *host, int port);
+int sendData(Conn *conn, char *buf, int size);
+int recvData(Conn *conn, char *buf, int size);
+void closeConn(Conn *c);
 
 #endif //ONEPROXY_CONNECTION_H
 

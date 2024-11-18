@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     server->ev = aeCreateEventLoop(EVENT_MAX_SIZE);
     aeCreateFileEvent(server->ev, server->listenfd, AE_READABLE, acceptTcpHandler, NULL);
 
-    initBackendConn(server);
+    initBackendConn();
 
     while (1) {
         aeMain(server->ev);
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void initBackendConn(Server *server) {
+void initBackendConn() {
     Conn* conns[2];
     Conn *conn = createConn("127.0.0.1", 6379);
     if (conn == NULL) {
@@ -52,5 +52,5 @@ void initBackendConn(Server *server) {
 
     conns[0] = conn;
     conns[1] = conn;
-    server->backConns = conns;
+    server->master = conn;
 }

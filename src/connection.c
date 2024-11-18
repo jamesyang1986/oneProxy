@@ -28,12 +28,11 @@ Conn *createConn(char *host, int port) {
     return conn;
 }
 
-void reconnet() {
-
+Conn *reconnet(char *host, int port) {
+    return NULL;
 }
 
-int sendData(Conn *c, char *buf) {
-    int len = strlen(buf);
+int sendData(Conn *c, char *buf, int len) {
     ssize_t send = 0;
     while (send < len) {
         int n = write(c->fd, buf + send, len - send);
@@ -44,10 +43,10 @@ int sendData(Conn *c, char *buf) {
 
         if (n == -1) {
             if (errno == EAGAIN) {
-                printf("EAGAIN\n");
+                printf("read fd: %d, EAGAIN\n", c->fd);
             }
             if (errno == EWOULDBLOCK) {
-                printf("EWOULDBLOCK\n");
+                printf("write fd:%d, EWOULDBLOCK\n", c->fd);
             }
             printf("send return -1,fail :%d, errno: %m\n", c->fd, errno);
             break;
@@ -58,21 +57,17 @@ int sendData(Conn *c, char *buf) {
     return len;
 }
 
-int recvData(Conn *c, char *buf) {
-    int len = strlen(buf);
-    int size = 0;
-    int n = read(c->fd, buf + size, len - size);
-    size = n;
-//    while (size < len) {
-//        int n = read(c->fd, buf + size, len - size);
-//        if (n == 0) {
-//            continue;
-//        }
-//        if (n == -1) {
-//            break;
-//        }
-//        size += n;
-//    }
+int recvData(Conn *c, char *buf, int len) {
+    int n = read(c->fd, buf, len);
+    if (n == 0) {
 
-    return size;
+    }
+    if (n == -1) {
+
+    }
+    return n;
+}
+
+void closeConn(Conn *c) {
+    free(c);
 }

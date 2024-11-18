@@ -22,8 +22,8 @@ typedef struct Server{
     int verbosity;
     char *logfile;
     pid_t pid;
-    Conn** backConns;
+    Conn* master;
+    Conn** slaves;
 }Server;
-
 
 #endif

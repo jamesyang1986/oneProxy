@@ -15,6 +15,7 @@
 #include "net.h"
 #include "server.h"
 #include "connection.h"
+#include "log.h"
 
 void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask);
 
@@ -23,7 +24,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask);
 void readClientProc(redisClient *c);
 
 
-void send2Proxy(const redisClient *c, char *buff);
+void send2Proxy(const redisClient *c, char *buff, int size);
 
 extern Server *server;
 
@@ -42,11 +43,10 @@ redisClient *makeConn(int fd) {
 
 
 void acceptTcpHandler(aeEventLoop *el, int fd, void *clientData, int mask) {
-    socklen_t cliaddrlen;
-    int clifd = accept(fd, (struct sockaddr *) NULL, NULL);
-    if (clifd > 0) {
-        redisClient *client = makeConn(clifd);
-        aeCreateFileEvent(el, clifd, AE_READABLE, client->readProc, client);
+    int cfd = accept(fd, (struct sockaddr *) NULL, NULL);
+    if (cfd > 0) {
+        redisClient *client = makeConn(cfd);
+        aeCreateFileEvent(el, cfd, AE_READABLE, client->readProc, client);
     } else {
         perror("fail to accept client socket.");
     }
@@ -76,7 +76,7 @@ void readClientProc(redisClient *c) {
     char *buff = malloc(sizeof(char) * len);
     memcpy(buff, c->queryBuf + c->readIndex, len);
 
-    printf("From client data: %s\n", buff);
+    Log(LOG_DEBUG, "From client data: %s", buff);
 
     if (c->reqType == 0) {
         if (buff[0] == '*') {
@@ -92,21 +92,26 @@ void readClientProc(redisClient *c) {
         processMultiBulk(c, buff);
     }
 
-    send2Proxy(c, buff);
+    send2Proxy(c, c->queryBuf, len);
 
 //    processCommand(c);
     c->writeIndex = 0;
     c->readIndex = 0;
     bzero(c->queryBuf, QUERY_BUFF_SIZE);
+    free(buff);
 }
 
-void send2Proxy(const redisClient *c, char *buff) {
-    Conn *conn = server->backConns[0];
+void send2Proxy(const redisClient *c, char *buff, int size) {
+    //use master mode default
+    Conn *conn = server->master;
     if (conn == NULL)return;
-    sendData(conn, buff);
-    char tmp[100];
-    int n = recvData(conn, tmp);
-    int size = write(c->fd, tmp, n);
+    sendData(conn, buff, size);
+    char tmp[1024];
+    int n = recvData(conn, tmp, 1024);
+
+    Log(LOG_DEBUG, "receive data from: %s:%d, data:%s", conn->host, conn->port, tmp);
+    int nsize = write(c->fd, tmp, n);
+//    free(tmp);
 }
 
 void processCommand(redisClient *c) {
