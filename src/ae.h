@@ -1,6 +1,8 @@
 #ifndef __AE_H__
 #define __AE_H__
 
+#include <time.h>
+
 #define AE_OK 0
 #define AE_ERR -1
 

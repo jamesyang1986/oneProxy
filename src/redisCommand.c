@@ -16,6 +16,7 @@
 #include "server.h"
 #include "connection.h"
 #include "log.h"
+#include "t_string.h"
 
 void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask);
 
@@ -146,11 +147,11 @@ void processCommand(redisClient *c) {
 
     char *cmd = c->argv[0];
     if (strcasecmp(cmd, "set") == 0) {
-        setCommand(c, c->argv);
+        setCommand(c);
     } else if (strcasecmp(cmd, "get") == 0) {
-        getCommand(c, c->argv);
+        getCommand(c);
     } else if (strcasecmp(cmd, "del") == 0) {
-        delCommand(c, c->argv);
+        delCommand(c);
     }
     c->argv = NULL;
     c->argc = 0;
@@ -264,46 +265,10 @@ void sendBulkStr(redisClient *c, char *data) {
     replyData(c, "\r\n", 2);
 }
 
-void getCommand(redisClient *c, void **argv) {
+
+
+void infoCommand(redisClient *c) {
     int args = c->argc;
-    if (args < 2) {
-        printf("wrong number of arguments\n");
-        sendERR(c, "ERR");
-    }
-    dict *db = c->curDb;
-    char *key = argv[1];
-
-    dictEntry *entry = dictFind(db, key);
-
-    if (entry == NULL) {
-        sendNil(c);
-        return;
-    }
-    void *data = entry->v.val;
-    sendBulkStr(c, data);
-}
-
-void setCommand(redisClient *c, void **argv) {
-    int args = c->argc;
-    if (args <= 2) {
-        printf("wrong number of arguments\n");
-        sendERR(c, "ERR");
-    }
-    dict *db = c->curDb;
-    char *key = argv[1];
-    char *value = argv[2];
-    dictAdd(db, key, value);
-    sendStr(c, "OK");
-}
-
-void expireCommand(redisClient *c, void **argv) {
-
-}
-
-void delCommand(redisClient *c, void **argv) {
-
-}
-
-void infoCommand(redisClient *c, void **argv) {
+    char **argv = c->argv;
 
 }

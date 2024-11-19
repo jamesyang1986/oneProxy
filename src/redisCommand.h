@@ -50,22 +50,21 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask);
 
 void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask);
 
-void getCommand(redisClient *c, void **argv);
 
-void setCommand(redisClient *c, void **argv);
-
-void expireCommand(redisClient *c, void **argv);
-
-void delCommand(redisClient *c, void **argv);
-
-void infoCommand(redisClient *c, void **argv);
-
+void infoCommand(redisClient *c);
 
 void processMultiBulk(redisClient *c, char *data);
 
 void processInline(redisClient *c, char *data);
 
 void processCommand(redisClient *c);
+
+void sendERR(redisClient *c, char *errorInfo);
+void sendStr(redisClient *c, char *data);
+void sendNil(redisClient *c);
+void sendBulkStr(redisClient *c, char *data);
+
+
 
 
 #endif //REDISCOMMAND_H
