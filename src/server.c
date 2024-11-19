@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
     server->verbosity = LOG_DEBUG;
     server->logfile = NULL;
     server->pid = getpid();
+    server->startTime = time(NULL);
 
     ProxyConfig *proxyConfig = loadConfig("/tmp/test.conf");
     server->connMap = dictCreate(&dictTypeHeapStringCopyKey, NULL);
@@ -46,7 +47,6 @@ int main(int argc, char *argv[]) {
     listen(server->listenfd, LISTENQ);
     server->ev = aeCreateEventLoop(EVENT_MAX_SIZE);
     aeCreateFileEvent(server->ev, server->listenfd, AE_READABLE, acceptTcpHandler, NULL);
-
 
     while (1) {
         aeMain(server->ev);

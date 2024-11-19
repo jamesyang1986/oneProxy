@@ -5,11 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
 #include <errno.h>
-#include <pthread.h>
 
 #include "redisCommand.h"
 #include "net.h"
@@ -26,6 +24,7 @@ void readClientProc(redisClient *c);
 
 
 void send2Proxy(const redisClient *c, char *buff, int size);
+
 Conn *getConn(char *host, int port);
 
 Instance *selectInstance(const redisClient *c);
@@ -40,6 +39,7 @@ redisClient *makeConn(int fd) {
     client->readProc = readQueryFromClient;
     client->connectNum++;
     client->curDb = server->db;
+    client->connectTime = time(NULL);
     //set socket not block
     anetSetBlock(fd, 1);
     return client;
@@ -96,6 +96,20 @@ void readClientProc(redisClient *c) {
         processMultiBulk(c, buff);
     }
 
+    char **argv = c->argv;
+    char *cmd = argv[0];
+    char *key = argv[1];
+
+    if (strcasecmp("QUIT", cmd) == 0) {
+        closeClient(c);
+        return;
+    }
+
+    if (strcasecmp("INFO", cmd) == 0) {
+        infoCommand(c);
+        return;
+    }
+
     send2Proxy(c, c->queryBuf, len);
 
 //    processCommand(c);
@@ -108,10 +122,11 @@ void readClientProc(redisClient *c) {
 
 Instance *selectInstance(const redisClient *c) {
     //TODO add cluster route impl
-    char ** argv = c->argv;
+    char **argv = c->argv;
+    char *cmd = argv[0];
     char *key = argv[1];
-    ProxyConfig  *config = server->proxyConfig;
-    Instance  *master = config->cluster->nodes[0]->master;
+    ProxyConfig *config = server->proxyConfig;
+    Instance *master = config->cluster->nodes[0]->master;
     return master;
 }
 
@@ -126,9 +141,8 @@ void send2Proxy(const redisClient *c, char *buff, int size) {
 
     Log(LOG_DEBUG, "receive data from: %s:%d, data:%s", conn->host, conn->port, tmp);
     int nsize = write(c->fd, tmp, n);
-//    free(tmp);
+    free(tmp);
 }
-
 
 Conn *getConn(char *host, int port) {
     char endpoint[30];
@@ -266,9 +280,16 @@ void sendBulkStr(redisClient *c, char *data) {
 }
 
 
-
 void infoCommand(redisClient *c) {
     int args = c->argc;
     char **argv = c->argv;
+    char *info = "--------oneProxy version 0.1--------";
+    sendBulkStr(c, info);
+}
 
+void closeClient(redisClient *c) {
+    close(c->fd);
+    free(c->sendBuf);
+    free(c->queryBuf);
+    free(c);
 }

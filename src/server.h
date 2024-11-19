@@ -1,17 +1,18 @@
+
+
+
+
+#ifndef SERVER_H
+#define SERVER_H
+
+#include <time.h>
 #include "ae.h"
 #include "dict.h"
 #include "connection.h"
 #include "serverConfig.h"
 
-#ifndef SERVER_H
-#define SERVER_H
-
-#define IPADDRESS "0.0.0.0"
-
 #define LISTENQ 5
-#define PORT 9527
 #define EVENT_MAX_SIZE 1024
-
 
 struct aeEventLoop;
 
@@ -25,6 +26,7 @@ typedef struct Server{
     pid_t pid;
     ProxyConfig *proxyConfig;
     dict *connMap;
+    time_t startTime;
 }Server;
 
 #endif

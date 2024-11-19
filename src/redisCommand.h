@@ -5,9 +5,12 @@
 #ifndef REDISCOMMAND_H
 #define REDISCOMMAND_H
 
+#include <time.h>
+
 #include "redisCommand.h"
 #include "dict.h"
 #include "ae.h"
+
 
 #define CONN_BUF_SIZE 1024
 #define MAX 1024
@@ -37,6 +40,7 @@ typedef struct redisClient {
 
     int readIndex;
     int writeIndex;
+    time_t  connectTime;
 
     int (*connProc)(aeEventLoop *, int, void *, int);
 
@@ -52,6 +56,8 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *clientData, int mask);
 
 
 void infoCommand(redisClient *c);
+
+void closeClient(redisClient *c);
 
 void processMultiBulk(redisClient *c, char *data);
 
